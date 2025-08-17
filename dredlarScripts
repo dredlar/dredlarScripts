@@ -1,0 +1,200 @@
+-- dredlarScripts
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+-- SETTINGS
+local waitTime = 0.05 -- teleport speed
+local autoTrainChi = false
+local autoCollectCoins = false
+local autoCollectChests = false
+local autoRebirth = false
+local autoFarmIslands = false
+
+-- LOADING SCREEN
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.ResetOnSpawn = false
+
+local loadingFrame = Instance.new("Frame", screenGui)
+loadingFrame.Size = UDim2.new(0.6,0,0.25,0)
+loadingFrame.Position = UDim2.new(0.2,0,0.375,0)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+loadingFrame.BorderSizePixel = 0
+loadingFrame.AnchorPoint = Vector2.new(0.5,0.5)
+
+-- Title Label
+local titleLabel = Instance.new("TextLabel", loadingFrame)
+titleLabel.Size = UDim2.new(1,0,0.4,0)
+titleLabel.Position = UDim2.new(0,0,0,0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Ninja Legends AutoFarm"
+titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+
+-- Subtitle Label
+local subtitleLabel = Instance.new("TextLabel", loadingFrame)
+subtitleLabel.Size = UDim2.new(1,0,0.2,0)
+subtitleLabel.Position = UDim2.new(0,0,0.4,0)
+subtitleLabel.BackgroundTransparency = 1
+subtitleLabel.Text = "Please wait, your script is loading..."
+subtitleLabel.TextColor3 = Color3.fromRGB(200,200,200)
+subtitleLabel.TextScaled = true
+subtitleLabel.Font = Enum.Font.Gotham
+
+-- Progress Bar
+local progressBar = Instance.new("Frame", loadingFrame)
+progressBar.Size = UDim2.new(0,0,0.2,0)
+progressBar.Position = UDim2.new(0,0,0.7,0)
+progressBar.BackgroundColor3 = Color3.fromRGB(0,170,255)
+progressBar.BorderSizePixel = 0
+
+-- Simulate loading 0-100%
+for i = 1,100 do
+    progressBar.Size = UDim2.new(i/100,0,0.2,0)
+    wait(0.02)
+end
+wait(0.2)
+loadingFrame:Destroy() -- remove loading after complete
+
+-- MAIN GUI
+local mainGui = Instance.new("Frame", screenGui)
+mainGui.Size = UDim2.new(0.35,0,0.4,0)
+mainGui.Position = UDim2.new(0.65,0,0.55,0)
+mainGui.BackgroundColor3 = Color3.fromRGB(40,40,40)
+mainGui.BorderSizePixel = 0
+mainGui.Visible = true
+
+-- Toggle button to show/hide GUI
+local toggleButton = Instance.new("TextButton", screenGui)
+toggleButton.Size = UDim2.new(0.15,0,0.05,0)
+toggleButton.Position = UDim2.new(0.8,0,0.95,0)
+toggleButton.Text = "Toggle GUI"
+toggleButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
+toggleButton.TextColor3 = Color3.fromRGB(255,255,255)
+toggleButton.TextScaled = true
+
+toggleButton.MouseButton1Click:Connect(function()
+    mainGui.Visible = not mainGui.Visible
+end)
+
+-- Helper function to create toggle buttons
+local function createToggleButton(text,pos,featureName)
+    local btn = Instance.new("TextButton", mainGui)
+    btn.Size = UDim2.new(0.9,0,0.15,0)
+    btn.Position = pos
+    btn.Text = text.." : Off"
+    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.TextScaled = true
+    btn.MouseButton1Click:Connect(function()
+        if featureName == "Chi" then autoTrainChi = not autoTrainChi; btn.Text = "Auto Chi : "..(autoTrainChi and "On" or "Off") end
+        if featureName == "Coins" then autoCollectCoins = not autoCollectCoins; btn.Text = "Auto Coins : "..(autoCollectCoins and "On" or "Off") end
+        if featureName == "Chests" then autoCollectChests = not autoCollectChests; btn.Text = "Auto Chests : "..(autoCollectChests and "On" or "Off") end
+        if featureName == "Rebirth" then autoRebirth = not autoRebirth; btn.Text = "Auto Rebirth : "..(autoRebirth and "On" or "Off") end
+        if featureName == "Islands" then autoFarmIslands = not autoFarmIslands; btn.Text = "Auto Islands : "..(autoFarmIslands and "On" or "Off") end
+    end)
+end
+
+-- Create buttons
+createToggleButton("Auto Chi", UDim2.new(0.05,0,0.05,0),"Chi")
+createToggleButton("Auto Coins", UDim2.new(0.05,0,0.25,0),"Coins")
+createToggleButton("Auto Chests", UDim2.new(0.05,0,0.45,0),"Chests")
+createToggleButton("Auto Rebirth", UDim2.new(0.05,0,0.65,0),"Rebirth")
+createToggleButton("Auto Islands", UDim2.new(0.05,0,0.85,0),"Islands")
+
+-- Draggable GUI
+local UserInputService = game:GetService("UserInputService")
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    mainGui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+mainGui.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainGui.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainGui.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- FARM FUNCTIONS
+local function trainChi()
+    for _, area in pairs(workspace.TrainingAreas:GetChildren()) do
+        if area:FindFirstChild("ChiTrainingPad") then
+            hrp.CFrame = area.ChiTrainingPad.CFrame
+            wait(waitTime)
+        end
+    end
+end
+
+local function collectCoins()
+    for _, coin in pairs(workspace.Coins:GetChildren()) do
+        if coin:FindFirstChild("TouchPart") then
+            hrp.CFrame = coin.TouchPart.CFrame
+            wait(waitTime)
+        end
+    end
+end
+
+local function collectChests()
+    for _, chest in pairs(workspace.Chests:GetChildren()) do
+        if chest:FindFirstChild("TouchPart") then
+            hrp.CFrame = chest.TouchPart.CFrame
+            wait(waitTime)
+        end
+    end
+end
+
+local function rebirth()
+    local pad = workspace:FindFirstChild("RebirthPad")
+    if pad then
+        hrp.CFrame = pad.CFrame
+        wait(waitTime)
+    end
+end
+
+local function farmIslands()
+    for _, island in pairs(workspace:Islands:GetChildren()) do
+        if island:FindFirstChild("SpawnPoint") and island:FindFirstChild("Access") then
+            if island.Access.Value <= player.Data.Level.Value then
+                hrp.CFrame = island.SpawnPoint.CFrame
+                wait(waitTime)
+            end
+        end
+    end
+end
+
+-- MAIN LOOP
+spawn(function()
+    while true do
+        if autoTrainChi then trainChi() end
+        if autoCollectCoins then collectCoins() end
+        if autoCollectChests then collectChests() end
+        if autoRebirth then rebirth() end
+        if autoFarmIslands then farmIslands() end
+        wait(0.05)
+    end
+end)
